@@ -8,7 +8,7 @@ Generate the necessary parameter files to run glacier dynamics using the fully c
 Parameter files are produced by running the wrapper script wrapper_rgm.vic.overlay.point.r, which has the following options:
 
 	-r RDATA, --rdata=RDATA
-		Source data as *.RData file. which mist contain a SDEM RasterLayer object, a BDEM RasterLayer object and a PLYGN SpatialDataFrameObject [required]
+		Source data as *.RData file. which must contain a SDEM RasterLayer object, a BDEM RasterLayer object and a PLYGN SpatialDataFrameObject [required]
 
 	-s SDEM, --sdem=SDEM
 		Surface DEM RasterLayer object in RDATA [required]
@@ -17,7 +17,7 @@ Parameter files are produced by running the wrapper script wrapper_rgm.vic.overl
 		Bed DEM RasterLayer object in RDTA[required]
 
 	-p PLYGN, --plygn=PLYGN
-		VIC polygons SpatialPolygonDataFrame object in RDATA [required]
+		VIC computational grid as SpatialPolygonDataFrame object in RDATA [required]
 
 	-w BASIN, --basin=BASIN
 		Sub-basin short name [required]
@@ -66,3 +66,9 @@ Parameter files are produced by running the wrapper script wrapper_rgm.vic.overl
 
 	-h, --help
 		Show this help message and exit
+
+THe supplied bed DEM (BDEM) and surface DEM (SDEM) are cropped to the study domain, the spatial extent of which is defined by extracting the relevant computational cells from PLYGN based on the mapping given in CELLF. A buffer (BUFFER; given in metres) can be included to extend the extent of the surafce DEM, bed DEM, and glacier mask beyond hte limits of the VICGL model domain. The glacier mask is estimaetd as the difference between SDEM and BDEM. THe defualt is to write the bed DEM, surface DEM and glacier mask as raster files to OUTDIR.
+
+A pixel mapping file is generated based on the overlap of the surface/bed DEMs and the VICGL computational grid. The default is to write the pixel map as a text file to OUTDIR.
+
+Note that BDEM and SDEM must have the same native resolution and structure (i.e. projection) and must completely overlap the desired VICGL study domain. All output rasters will have the same resolution and structure as SDEM and BDEM.
