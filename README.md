@@ -67,7 +67,7 @@ Parameter files are produced by running the wrapper script wrapper_rgm.vic.overl
 	-h, --help
 		Show this help message and exit
 
-THe supplied bed DEM (BDEM) and surface DEM (SDEM) are cropped to the study domain, the spatial extent of which is defined by extracting the relevant computational cells from PLYGN based on the mapping given in CELLF. A buffer (BUFFER; given in metres) can be included to extend the extent of the surafce DEM, bed DEM, and glacier mask beyond hte limits of the VICGL model domain. The glacier mask is estimaetd as the difference between SDEM and BDEM. THe defualt is to write the bed DEM, surface DEM and glacier mask as raster files to OUTDIR.
+The supplied bed DEM (BDEM) and surface DEM (SDEM) are cropped to the study domain, the spatial extent of which is defined by extracting the relevant computational cells from PLYGN based on the mapping given in CELLF. A buffer (BUFFER; given in metres) can be included to extend the surface DEM, bed DEM, and glacier mask beyond the limits of the VICGL model domain. The glacier mask is calculated as the difference between SDEM and BDEM. The defualt is to write the bed DEM, surface DEM and glacier mask as GSA raster files to OUTDIR.
 
 A pixel mapping file is generated based on the overlap of the surface/bed DEMs and the VICGL computational grid. The default is to write the pixel map as a text file to OUTDIR.
 
