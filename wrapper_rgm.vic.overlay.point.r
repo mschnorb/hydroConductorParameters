@@ -41,11 +41,11 @@
 library('optparse')
 option_list <- list(
   make_option(c("-r", "--rdata"),   action="store", type="character", help="Source data as *.RData file [required]"),
-  make_option(c("-s", "--sdem"),    action="store", type="character", help="Surface DEM RasterLayer object [required]"),
-  make_option(c("-b", "--bdem"),    action="store", type="character", help="Bed DEM RasterLayer object [required]"),
-  make_option(c("-p", "--plygn"),   action="store", type="character", help="VIC polygons SpatialPolygonDataFrame object [required]"),
+  make_option(c("-s", "--sdem"),    action="store", type="character", help="Surface DEM RasterLayer object in rdata [required]"),
+  make_option(c("-b", "--bdem"),    action="store", type="character", help="Bed DEM RasterLayer object in rdata [required]"),
+  make_option(c("-p", "--plygn"),   action="store", type="character", help="VIC polygons SpatialPolygonDataFrame object rdaat [required]"),
   make_option(c("-w", "--basin"),   action="store", type="character", help="Sub-basin short name [required]"),
-  make_option(c("-c", "--cellf"),   action="store", type="character", help="Name of text file mapping cell IDs to basin name [required]"),
+  make_option(c("-c", "--cellf"),   action="store", type="character", help="Name of text file mapping cell IDs to basin name; must contain CELL_ID and NAME fields [required]"),
   make_option(c("-z", "--zref"),    action="store", type="double", default=0.0,   help="Reference elevation (i.e. bottom elevation of lowest band) [default is 0]"),
   make_option(c("-d", "--deltaz"),  action="store", type="double", default=200.0, help="Band relief (i.e. zband2-zband1) [default is 200]"),
   make_option(c("-m", "--mindep"),  action="store", type="double", default=2.0,   help="Threshold depth (m) for glacier presence [default is 2.0]"),
