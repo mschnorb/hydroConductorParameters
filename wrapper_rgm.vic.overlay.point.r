@@ -73,7 +73,8 @@ if(!is.null(opt$refyear)) refyr <- paste(opt$refyear, "_", sep="")
 
 #Load source and input files; initialize output files
 load(opt$rdata)
-source("mapSrc.r")
+src_dir <- dirname(scriptName::current_filename())
+source(file.path(src_dir, "mapSrc.r"))
 outMap_file   <- paste(opt$outdir, "/pixel_map_", opt$basin, ".txt", sep="")
 srfDEM_file   <- paste(opt$outdir, "/srf_dem_", refyr, opt$basin, ".gsa", sep="")
 bedDEM_file   <- paste(opt$outdir, "/bed_dem_", opt$basin, ".gsa", sep="")
