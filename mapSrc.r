@@ -77,11 +77,11 @@ rgm_vic_overlay.point <- function(srfDEM,
   if(logging) print(paste("Cropping RGM raster with ", bffr, "-m buffer and aggregation factor of ", agg, sep=""))
   rsn <- xres(srfDEM)
   if(agg != 1){
-    c_rs<- aggregate(crop(srfDEM, extend(extent(soilpt),bffr/rsn), snap="out"), fact=agg, fun=mean, expand=TRUE)
-    c_rb<- aggregate(crop(bedDEM, extend(extent(soilpt),bffr/rsn), snap="out"), fact=agg, fun=mean, expand=TRUE)
+    c_rs<- aggregate(crop(srfDEM, extend(extent(soilpt),bffr), snap="out"), fact=agg, fun=mean, expand=TRUE)
+    c_rb<- aggregate(crop(bedDEM, extend(extent(soilpt),bffr), snap="out"), fact=agg, fun=mean, expand=TRUE)
   } else {
-    c_rs<- crop(srfDEM, extend(extent(soilpt),bffr/rsn), snap="out")
-    c_rb<- crop(bedDEM, extend(extent(soilpt),bffr/rsn), snap="out")
+    c_rs<- crop(srfDEM, extend(extent(soilpt),bffr), snap="out")
+    c_rb<- crop(bedDEM, extend(extent(soilpt),bffr), snap="out")
   }
   qrst <- check_elevation_rasters(c_rs, c_rb, mindepth)
   
