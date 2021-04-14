@@ -62,7 +62,6 @@ option_list <- list(
 )
 opt <- parse_args(OptionParser(option_list=option_list))
 if(is.null(opt$rdata)) stop("Missing argument for 'rdata'. Use -h or --help flag for usage.")
-if(is.null(opt$funcf)) stop("Missing argument for 'funcf'. Use -h or --help flag for usage.")
 if(is.null(opt$sdem))  stop("Missing argument for 'sdem'. Use -h or --help flag for usage.")
 if(is.null(opt$bdem))  stop("Missing argument for 'bdem'. Use -h or --help flag for usage.")
 if(is.null(opt$plygn)) stop("Missing argument for 'plygn'. Use -h or --help flag for usage.")
