@@ -5,7 +5,7 @@ Generate the necessary parameter files to run glacier dynamics using the fully c
   + glacier mask
   + pixel mapping file
 
-Parameter files are produced by running the wrapper script wrapper_rgm.vic.overlay.point.r, which has the following options:
+Parameter files are produced by running the either the wrapper script wrapper_rgm.vic.overlay.point.r from the command line, which has the following options:
 
 	-r RDATA, --rdata=RDATA
 		Source data as *.RData file. which must contain a SDEM RasterLayer object, a BDEM RasterLayer object and a PLYGN SpatialDataFrameObject [required]
@@ -14,7 +14,7 @@ Parameter files are produced by running the wrapper script wrapper_rgm.vic.overl
 		Surface DEM RasterLayer object in RDATA [required]
 
 	-b BDEM, --bdem=BDEM
-		Bed DEM RasterLayer object in RDTA[required]
+		Bed DEM RasterLayer object in RDATA [required]
 
 	-p PLYGN, --plygn=PLYGN
 		VIC computational grid as SpatialPolygonDataFrame object in RDATA [required]
@@ -66,6 +66,51 @@ Parameter files are produced by running the wrapper script wrapper_rgm.vic.overl
 
 	-h, --help
 		Show this help message and exit
+
+or by using the function call_rgm.vic.overlay.point from an R environment, which has the following usage
+
+call_rgm.vic.overlay.point(sdem, bdem, plygn, basin, cellf, zref=0, deltaz=200, mindep=2.0, refyear-NULL,
+                                         buffer=0.0, aggreg=1.0, fromtop=TRUE, outdir="./", nomap=FALSE, nosurf=FALSE,
+                                         nobed=FALSE, nomask=FALSE, verbose=FALSE)
+
+with arguments:
+
+    sdem    Surface DEM RasterLayer object
+
+    bdem    Bed DEM RasterLayer object
+
+    plygn   VIC computational grid as SpatialPolygonDataFrame object
+
+    basin   Sub-basin short name
+
+    cellf   Name of CSV file mapping cell IDs to basin name
+
+    zref    Reference elevation (i.e. bottom elevation of lowest band)
+
+    delta   Band relief (i.e. zband2-zband1)
+
+    mindep  Threshold depth (m) for glacier presence
+
+    refyear Reference year of surface DEM and glacier mask
+
+    buffer  Buffer (in metres) to increase extent of rasters beyond soil polygon extent
+
+    aggreg  DEM aggregation factor
+
+    fromtop Count rows from top of map to bottom (i.e. ymax to ymin)
+
+    outdir  Output directory
+
+    nomap   Do not write pixel map to file
+
+    nosurf  Do not write surface DEM to file
+
+    nobed   Do not write bed DEM to file
+
+    nomask  Do not write glacier mask to file
+
+    verbose Print progress messages
+
 
 The supplied bed DEM (BDEM) and surface DEM (SDEM) are cropped to the study domain, the spatial extent of which is defined by extracting the relevant computational cells from PLYGN based on the mapping given in CELLF. A buffer (BUFFER; given in metres) can be included to extend the surface DEM, bed DEM, and glacier mask beyond the limits of the VICGL model domain. The glacier mask is calculated as the difference between SDEM and BDEM. The defualt is to write the bed DEM, surface DEM and glacier mask as GSA raster files to OUTDIR.
 
