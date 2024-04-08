@@ -116,29 +116,6 @@ rgm_vic_overlay.point <- function(srfDEM,
 }
 
 
-select_soil_polygons <- function(soil_poly,
-                                 cell_list)
-{
-  #########################################################################
-  #DESCRIPTION: Select sub-set of VIC soil file polygon
-  
-  #ARGUMENTS:
-  # soil_poly - VIC soil cell polygon
-  # cell_list - grid cell IDs to subset on
-  #########################################################################
-  
-  index <- match(cell_list, soil_poly@data$CELL_ID)
-  if(any(is.na(index))) stop("Some (or all) cells in cell_list not contained in soil_poly. Check the cell IDs.") 
-  
-  soil_poly@data$SELECT <- 0
-  soil_poly@data$SELECT[index] <- 1
-  
-  poly_select <- soil_poly[soil_poly@data$SELECT==1,]
-  
-  return(poly_select)
-}
-
-
 make_glacier_mask <- function(sfcrst,
                               bedrst,
                               dth)
@@ -236,7 +213,7 @@ write_GSA_grid <- function(x,
   #################################################################################
 
   
-  library('raster')
+  library('terra')
   
   con <- file(description=outFile, open="w")
   rst <- flip(x)
@@ -245,48 +222,9 @@ write_GSA_grid <- function(x,
   write(sprintf("%f  %f", ext(rst)[1] + res(rst)[1]/2, ext(rst)[2] - res(rst)[1]/2), con)
   write(sprintf("%f  %f", ext(rst)[3] + res(rst)[2]/2, ext(rst)[4] - res(rst)[2]/2), con)
   write(sprintf("%f  %f", min(values(rst), na.rm = TRUE), max(values(rst), na.rm = TRUE)), con)
-  #for(r in 1:rst@nrows) write(getValues(rst, r, 1), file=con, ncolumns=rst@ncols, sep=" ")
   for(r in 1:dim(rst)[1]) write(sprintf("%.1f", values(rst, mat=FALSE, row=r, nrows=1, col=1)), file=con, ncolumns=dim(rst)[2], sep=" ")
   close(con)
   
   return()
   
-}
-
-
-load_surfer_grid <- function(inFile)
-{
-
-  ################################################################################
-  #DESCRIPTION: Load ascii surfer grid and convert to Raster object
-  
-  #ARGUMENT(S):
-  # inFile - name of surfer grid
-  
-  #VALUE: Raster object
-  
-  #DETAILS: Empty raster object built using meta-data in surfer grid header.
-  # Note that extent given in surfer file header measured from grid cell centres,
-  # whereas extent expected by raster is from edges - hence must add res/2 to
-  # surfer values of xmn, xmx, ymn and ymx. The direction of the northing axis
-  # in the surfer grid format is opposite (i.e.upside-down) compared to that for
-  # a Raster object, hence the need to 'flip' about the easting axis
-  ################################################################################
-  
-  require("raster")
-  
-  #Read file
-  con <- file(description=inFile, open="r")
-  hdr <- scan(file=con, what=numeric(), nmax=9, na.strings = "DSAA", quiet=TRUE)
-  vals <- scan(file=con, what=numeric(), quiet=TRUE) #numeric() or numeric?
-  close(con)
-  
-  hdr <- hdr[which(!is.na(hdr))]
-  resx <- (hdr[4]-hdr[3])/(hdr[1]-1)
-  resy <- (hdr[6]-hdr[5])/(hdr[2]-1)
-  x <- raster(ncols=hdr[1], nrows=hdr[2],
-              xmn=hdr[3]-resx/2, xmx=hdr[4]+resx/2, ymn=hdr[5]-resy/2, ymx=hdr[6]+resy/2)
-  x <- setValues(x, vals)
-  
-  return(flip(x,2))
 }

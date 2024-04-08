@@ -90,8 +90,8 @@ result <- tryCatch({
   if(!opt$nomap){
     if(opt$verbose) print("Writing pixel map to file")
     con1 <- file(description=outMap_file, open="w")
-    write(sprintf("NCOLS  %d", rslt$sfc_raster@ncols), con1)
-    write(sprintf("NROWS  %d", rslt$sfc_raster@nrows), con1)
+    write(sprintf("NCOLS  %d", dim(rslt$sfc_raster)[2]), con1)
+    write(sprintf("NROWS  %d", dim(rslt$sfc_raster)[1]), con1)
     write.table(rslt$overDF, file=con1, sep=" ", row.names=FALSE)
     close(con1) }
   #Write surface elevation as GSA grid

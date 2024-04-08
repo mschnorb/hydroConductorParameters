@@ -1,6 +1,6 @@
-call_rgm.vic.overlay.point <- function(sdem,            #RasterLayer object representing surface DEM
-                                       bdem,            #RasterLayer object representing bed DEM
-                                       plygn,           #VIC cells SpatialPolygonDataFrame object
+call_rgm.vic.overlay.point <- function(sdem,            #SpatRaster object representing surface DEM
+                                       bdem,            #SpatRaster object representing bed DEM
+                                       plygn,           #VIC cells SpatialVector object
                                        basin,           #sub basin short name identifier
                                        cellf,           #filename of VIC grid cell IDs; must contain CELL_ID and NAME fields
                                        zref = 0,        #reference elevation (i.e. bottom elevation of lowest band) [default is 0]
