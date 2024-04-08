@@ -5,7 +5,7 @@ rgm_vic_overlay.point <- function(srfDEM,
                                   cellFile,
                                   zref=0,
                                   deltaz=200,
-                                  mindepth=2.0,
+                                  mindepth=1.0,
                                   bffr=0.0,
                                   agg=1.0,
                                   row.fromtop=TRUE,
@@ -16,9 +16,9 @@ rgm_vic_overlay.point <- function(srfDEM,
   # specified by list of VIC cells
   
   #ARGUMENTS:
-  # srfDEM -      reference surface DEM as RasterLayer object
-  # bedDEM -      reference bed DEM as RasterLayer object
-  # soilPoly -    VIC soil cells as SpatialPolygonDataFrame object
+  # srfDEM -      reference surface DEM as SpatRaster object
+  # bedDEM -      reference bed DEM as SpatRaster object
+  # soilPoly -    VIC soil cells as SpatVector object
   # basin -       sub-basin short name
   # cellFile -    file mapping VIC cell IDs to sub-basins (csv)
   # zref -        reference elevation (i.e. bottom elevation of lowest band); default is 0
@@ -36,16 +36,13 @@ rgm_vic_overlay.point <- function(srfDEM,
   ###################################################################################################
   
   #Load required packages
-  suppressPackageStartupMessages(require("sp"))
-  suppressPackageStartupMessages(require("raster"))
-  suppressPackageStartupMessages(require("rgeos"))
-  suppressPackageStartupMessages(require("rgdal"))
+  suppressPackageStartupMessages(require("terra"))
   
   #Load and check input arguments/data
   if(logging) print("Reading input data")
-  if(!is(srfDEM, 'RasterLayer')) stop("Argument 'srfDEM' must be a RasterLayer object.")
-  if(!is(bedDEM, 'RasterLayer')) stop("Argument 'bedDEM' must be a RasterLayer object.")
-  if(!is(soilPoly, "SpatialPolygonsDataFrame")) stop("Argument 'soilPoly' must be a SpatialPolygonsDataFrame object.")
+  if(!is(srfDEM, 'SpatRaster')) stop("Argument 'srfDEM' must be a SpatRaster object.")
+  if(!is(bedDEM, 'SpatRaster')) stop("Argument 'bedDEM' must be a SpatRaster object.")
+  if(!is(soilPoly, "SpatVector")) stop("Argument 'soilPoly' must be a SpatVector object.")
   if(!file.exists(cellFile)) stop(paste("File ", cellFile, " does not exist."))
   
   #Log input details
@@ -57,7 +54,7 @@ rgm_vic_overlay.point <- function(srfDEM,
     cat("... bed DEM raster object: \n")
     print(bedDEM)
     cat("\n")
-    cat("... VIC cells SpatialPolygonDataFrame object: \n")
+    cat("... VIC cells SpatVector object: \n")
     print(soilPoly)
     cat("\n")
   }
@@ -67,21 +64,21 @@ rgm_vic_overlay.point <- function(srfDEM,
   celldf <- read.csv(cellFile, stringsAsFactors = FALSE)
   cells  <- unlist(celldf$CELL_ID[which(celldf$NAME == basin)])
   if(length(cells)==0) stop(paste("No cells in cell map match name ", basin, sep=""))
-  soilp <-select_soil_polygons(soilPoly, cells)
+  soilp <- subset(soilPoly, soilPoly$CELL_ID %in% cells)
   
   #Re-project polygon - set to same CRS as rgm_raster
   if(logging) print("Projecting sub-setted soil polygons.")
-  soilpt <- spTransform(soilp, srfDEM@crs)
+  soilpt <- project(soilp, srfDEM)
   
   #Crop domain-wide rgm_rasters to extent of subsetted soil polygon with buffer; conduct QA/QC
   if(logging) print(paste("Cropping RGM raster with ", bffr, "-m buffer and aggregation factor of ", agg, sep=""))
   rsn <- xres(srfDEM)
   if(agg != 1){
-    c_rs<- aggregate(crop(srfDEM, extend(extent(soilpt),bffr), snap="out"), fact=agg, fun=mean, expand=TRUE)
-    c_rb<- aggregate(crop(bedDEM, extend(extent(soilpt),bffr), snap="out"), fact=agg, fun=mean, expand=TRUE)
+    c_rs<- aggregate(crop(srfDEM, buffer(soilpt, 5000), snap="out"), fact=agg, fun=mean)
+    c_rb<- aggregate(crop(bedDEM, buffer(soilpt, 5000), snap="out"), fact=agg, fun=mean)
   } else {
-    c_rs<- crop(srfDEM, extend(extent(soilpt),bffr), snap="out")
-    c_rb<- crop(bedDEM, extend(extent(soilpt),bffr), snap="out")
+    c_rs<- crop(srfDEM, buffer(soilpt, 5000), snap="out")
+    c_rb<- crop(bedDEM, buffer(soilpt, 5000), snap="out")
   }
   qrst <- check_elevation_rasters(c_rs, c_rb, mindepth)
   
@@ -89,29 +86,33 @@ rgm_vic_overlay.point <- function(srfDEM,
   if(logging) print("Generating glacier mask.")
   mask <- make_glacier_mask(qrst$sfc, qrst$bed, mindepth)
   
-  #Convert raster to SpatialPoints* object
-  if(logging) print("Converting sub-setted RGM raster to SpatialPointsDataFrame.")
-  crs.SPDF <- as(qrst$sfc, 'SpatialPointsDataFrame')
-  names(crs.SPDF@data) <- "ELEV"
+  #Convert raster to SpatVector object
+  if(logging) print("Converting sub-setted RGM raster to SpatVector")
+  crs.SPDF <- as.points(qrst$sfc)
+  names(crs.SPDF) <- "ELEV"
+  crs.SPDF$ID <- 1:length(crs.SPDF)
   
   #Take overlay of RGM pixels and VIC cells over sub-setted domain
   if(logging) print("Taking overlay of RGM and VIC soil polygons.")
-  over_temp <- crs.SPDF %over% soilpt
+  #over_temp <- crs.SPDF %over% soilpt  #TODO
+  over_temp <- intersect(crs.SPDF, soilpt)
+  overPoints <- merge(crs.SPDF, over_temp, by.x="ID", by.y="ID", all.x = TRUE)
   
   #Add metadata to overlay data frame
   if(logging) print("Building RGM-VIC overlay data frame.")
   pixels <- 1:length(crs.SPDF)
-  ncols <- qrst$sfc@ncols
-  nrows <- qrst$sfc@nrows
+  ncols <- dim(qrst$sfc)[2]
+  nrows <- dim(qrst$sfc)[1]
   prows <- ceiling(pixels/ncols)-1  #pixel rows indexed from 0...nrows-1
   pcols <- pixels-prows*ncols-1     #pixel cols indexed from 0...ncols-1
   if(row.fromtop) prows <- (nrows-prows)-1
-  bands <- floor((crs.SPDF@data$ELEV-zref)/deltaz)
-  overDF <- cbind(data.frame(PIXEL_ID=pixels, ROW=prows, COL=pcols, BAND=bands), round(crs.SPDF@data, digits=0), over_temp[1])
+  bands <- floor((crs.SPDF$ELEV-zref)/deltaz)
+  overDF <- cbind(data.frame(PIXEL_ID=pixels, ROW=prows, COL=pcols, BAND=bands), round(crs.SPDF$ELEV, digits=0), overPoints$CELL_ID)
   #Sort overlay data frame into ascending ROWs then ascending COLs
   overDF <- overDF[order(overDF$ROW, overDF$COL),]
+  names(overDF)[5:6] <- c("ELEV", "CELL_ID")
   
-  return(list(sub_poly=pt, sfc_raster=qrst$sfc, bed_raster=qrst$bed, glac_mask=mask, overDF=overDF))
+  return(list(sub_poly=soilpt, sfc_raster=qrst$sfc, bed_raster=qrst$bed, glac_mask=mask, overDF=overDF))
 }
 
 
@@ -154,8 +155,8 @@ make_glacier_mask <- function(sfcrst,
   #################################################################################
   
   #Get raster values
-  sfc <- getValues(sfcrst)
-  bed <- getValues(bedrst)
+  sfc <- values(sfcrst)
+  bed <- values(bedrst)
   
   #Create glacier mask
   glc <- sfc - bed
@@ -163,11 +164,9 @@ make_glacier_mask <- function(sfcrst,
   glc[which(glc > dth)] <- 1
   
   #Create glacier mask raster
-  mask <- raster(ncol=sfcrst@ncols, nrow=sfcrst@nrows,
-                 xmn=sfcrst@extent@xmin, xmx=sfcrst@extent@xmax,
-                 ymn=sfcrst@extent@ymin, ymx=sfcrst@extent@ymax)
-  projection(mask) <- sfcrst@crs
-  mask <- setValues(mask, glc)
+  mask <- rast(ncols=dim(sfcrst)[2], nrows=dim(sfcrst)[1], nlyrs=1,
+               ext(sfcrst), crs(sfcrst))
+  values(mask) <- glc
   
   return(mask)
 }
@@ -183,8 +182,8 @@ check_elevation_rasters <- function(sfcrst,
   # derive from different data sources and methodology)
   
   #ARGUMENTS:
-  # sfcrst - surface DEM as Raster object
-  # bedrst - bed DEM as Raster object
+  # sfcrst - surface DEM as SpatRaster object
+  # bedrst - bed DEM as SpatRaster object
   # dth -    depth threshold for glacier occurrence
   
   #DETAILS: Functions performs three checks: 1) Bed and/or surface elevations
@@ -201,8 +200,8 @@ check_elevation_rasters <- function(sfcrst,
   #################################################################################
 
   #Get raster values
-  sfc <- getValues(sfcrst)
-  bed <- getValues(bedrst)
+  sfc <- values(sfcrst)
+  bed <- values(bedrst)
   
   #Filter for 0 or negative values
   sfc[which(sfc <= 0)] <- 0.1
@@ -214,8 +213,8 @@ check_elevation_rasters <- function(sfcrst,
   bed[index] <- (sfc[index] + bed[index])/2
   
   #Update elevation surfaces
-  sfcrst <- setValues(sfcrst, sfc)
-  bedrst <- setValues(bedrst, bed)
+  values(sfcrst) <- sfc
+  values(bedrst) <- bed
   
   return(list(sfc=sfcrst, bed=bedrst))
 }
@@ -240,14 +239,14 @@ write_GSA_grid <- function(x,
   library('raster')
   
   con <- file(description=outFile, open="w")
-  rst <- flip(x, 2)
+  rst <- flip(x)
   write(sprintf("DSAA"), con)
-  write(sprintf("%d  %d", rst@ncols, rst@nrows), con)
-  write(sprintf("%f  %f", rst@extent@xmin + res(rst)[1]/2, rst@extent@xmax - res(rst)[1]/2), con)
-  write(sprintf("%f  %f", rst@extent@ymin + res(rst)[2]/2, rst@extent@ymax - res(rst)[2]/2), con)
-  write(sprintf("%f  %f", rst@data@min, rst@data@max), con)
+  write(sprintf("%d  %d", dim(rst)[2], dim(rst)[1]), con)
+  write(sprintf("%f  %f", ext(rst)[1] + res(rst)[1]/2, ext(rst)[2] - res(rst)[1]/2), con)
+  write(sprintf("%f  %f", ext(rst)[3] + res(rst)[2]/2, ext(rst)[4] - res(rst)[2]/2), con)
+  write(sprintf("%f  %f", min(values(rst), na.rm = TRUE), max(values(rst), na.rm = TRUE)), con)
   #for(r in 1:rst@nrows) write(getValues(rst, r, 1), file=con, ncolumns=rst@ncols, sep=" ")
-  for(r in 1:rst@nrows) write(sprintf("%.1f", getValues(rst, r, 1)), file=con, ncolumns=rst@ncols, sep=" ")
+  for(r in 1:dim(rst)[1]) write(sprintf("%.1f", values(rst, mat=FALSE, row=r, nrows=1, col=1)), file=con, ncolumns=dim(rst)[2], sep=" ")
   close(con)
   
   return()

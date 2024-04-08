@@ -38,10 +38,7 @@ call_rgm.vic.overlay.point <- function(sdem,            #RasterLayer object repr
   if(!is.null(refyear)) refyr <- paste(refyear, "_", sep="")
   
   #Load source and input files; initialize output files
-  #src_dir <- dirname(scriptName::current_filename())
-  #source(file.path(src_dir, "mapSrc.r"))
-  print(sys.calls())
-  print(match.call())
+  source("mapSrc.r")
   outMap_file   <- file.path(outdir, paste("pixel_map_", basin, ".txt", sep=""))
   srfDEM_file   <- file.path(outdir, paste("srf_dem_", refyr, basin, ".gsa", sep=""))
   bedDEM_file   <- file.path(outdir, paste("bed_dem_", basin, ".gsa", sep=""))
@@ -57,8 +54,8 @@ call_rgm.vic.overlay.point <- function(sdem,            #RasterLayer object repr
     if(!nomap){
       if(verbose) print("Writing pixel map to file")
       con1 <- file(description=outMap_file, open="w")
-      write(sprintf("NCOLS  %d", rslt$sfc_raster@ncols), con1)
-      write(sprintf("NROWS  %d", rslt$sfc_raster@nrows), con1)
+      write(sprintf("NCOLS  %d", dim(rslt$sfc_raster)[2]), con1)
+      write(sprintf("NROWS  %d", dim(rslt$sfc_raster)[1]), con1)
       write.table(rslt$overDF, file=con1, sep=" ", row.names=FALSE, quote = FALSE)
       close(con1) }
     #Write surface elevation as GSA grid
